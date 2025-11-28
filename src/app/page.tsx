@@ -134,27 +134,46 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section id="inicio" className="pt-32 pb-20 px-4 gradient-radial min-h-screen flex items-center">
-        <div className="container mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div className="text-center md:text-left space-y-4">
-            <h1 className="text-5xl md:text-7xl font-bold mb-2 tracking-tight">
+      <section
+        id="inicio"
+        className="relative pt-32 pb-20 px-4 gradient-radial min-h-screen flex items-center overflow-hidden"
+      >
+        <div className="absolute inset-0">
+          <Image
+            src={heroImage}
+            alt="Brownie y galletas Zazasquatch"
+            fill
+            className="object-cover"
+            priority
+            placeholder="blur"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#050011]/85 via-[#0f0624]/70 to-[#4C1D95]/60" />
+        </div>
+
+        <div className="relative container mx-auto max-w-4xl">
+          <div className="text-center md:text-left space-y-6 md:space-y-8">
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-black/40 border border-purple-700/50 text-sm text-purple-200 backdrop-blur">
+              <span className="inline-block w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+              <span>Potencia monstruosa en cada bocado</span>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold mb-2 tracking-tight leading-tight">
               ZAZASQUATCH
             </h1>
-            <p className="text-2xl md:text-3xl text-purple-300">
+            <p className="text-2xl md:text-3xl text-purple-100 drop-shadow-lg">
               Brownies y galletas con potencia monstruosa
             </p>
-            <p className="text-lg md:text-xl text-gray-300">
+            <p className="text-lg md:text-xl text-gray-100/90 max-w-3xl leading-relaxed">
               Brownies y galletas infusionados con THC-P y THC-O, pensados para usuarios responsables que buscan experiencias intensas.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start items-center">
-              <Button onClick={() => scrollToSection("productos")} size="lg" className="bg-purple-600 hover:bg-purple-700 text-lg px-8">
+              <Button onClick={() => scrollToSection("productos")} size="lg" className="bg-purple-600 hover:bg-purple-700 text-lg px-8 shadow-lg shadow-purple-900/40">
                 Ver productos
               </Button>
               <Button
                 asChild
                 size="lg"
                 variant="outline"
-                className="border-purple-500 text-purple-300 hover:bg-purple-900/30 text-lg px-8"
+                className="border-purple-300/60 text-purple-100 hover:bg-purple-900/30 text-lg px-8 backdrop-blur"
               >
                 <a
                   href="https://wa.me/5210000000000?text=Hola%20Zazasquatch%2C%20quiero%20hacer%20un%20pedido"
@@ -165,22 +184,9 @@ export default function Home() {
                 </a>
               </Button>
             </div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-200/80">
               Consumo exclusivo para adultos. Disfruta de forma responsable.
             </p>
-          </div>
-          <div className="relative w-full max-w-xl h-[420px] mx-auto">
-            <div className="absolute inset-0 rounded-[32px] bg-purple-700/20 blur-3xl" />
-            <div className="relative w-full h-full rounded-[32px] overflow-hidden border border-purple-700/40 shadow-2xl shadow-purple-900/50">
-              <Image
-                src={heroImage}
-                alt="Brownie y galletas Zazasquatch"
-                fill
-                className="object-cover"
-                priority
-                placeholder="blur"
-              />
-            </div>
           </div>
         </div>
       </section>
