@@ -1,8 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+
+import brownieChocolateImage from "../../images/Brownie de chocolate.jpg";
+import brownieSuperChocolateImage from "../../images/Brownie de súper chocolate con trozos de chocolate Hersheys.jpg";
+import galletaChispasChocolateImage from "../../images/Galleta con chispas de chocolate.jpg";
+import galletaChispasCajetaImage from "../../images/Galleta con chispas y cajeta.jpg";
+import galletaChocoMentaImage from "../../images/Galleta chocomenta.jpg";
+import heroImage from "../../images/hero.jpg";
 
 const products = [
   {
@@ -12,6 +20,7 @@ const products = [
     type: "THC-P",
     description: "Brownie clásico, súper chocolatoso, con textura húmeda por dentro y ligera costra por fuera. Perfecto para antojo de algo intenso pero sencillo.",
     stripeUrl: "https://buy.stripe.com/00weVd7uO5YxbGX6MIdUY07",
+    image: brownieChocolateImage,
   },
   {
     id: 2,
@@ -20,6 +29,7 @@ const products = [
     type: "THC-O",
     description: "Brownie extra cargado de chocolate, con trozos de Hershey's que se derriten al morder. Ideal para los que 'nunca es suficiente chocolate'.",
     stripeUrl: "https://buy.stripe.com/6oU14n5mG3QpbGX1sodUY06",
+    image: brownieSuperChocolateImage,
   },
   {
     id: 3,
@@ -28,6 +38,7 @@ const products = [
     type: "THC-P",
     description: "Galleta suave por dentro y ligeramente crujiente por fuera, llena de chispas de chocolate en cada bocado. Un clásico que nunca falla.",
     stripeUrl: "https://buy.stripe.com/3cIfZheXgdqZ12j0okdUY05",
+    image: galletaChispasChocolateImage,
   },
   {
     id: 4,
@@ -36,6 +47,7 @@ const products = [
     type: "THC-P",
     description: "Galleta de chocolate con un toque fresco de menta, perfecta para quienes aman la combinación intensa y refrescante.",
     stripeUrl: "https://buy.stripe.com/dRm14ng1k1Ih26nc72dUY04",
+    image: galletaChocoMentaImage,
   },
   {
     id: 5,
@@ -44,6 +56,7 @@ const products = [
     type: "THC-O",
     description: "Galleta con chispas de chocolate y centros de cajeta suave que se derrite. Dulce, cremosa y súper antojable.",
     stripeUrl: "https://buy.stripe.com/aFa9AT02mdqZ6mD8UQdUY03",
+    image: galletaChispasCajetaImage,
   },
 ];
 
@@ -121,44 +134,54 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section id="inicio" className="pt-32 pb-20 px-4 gradient-radial min-h-screen flex items-center justify-center">
-        <div className="container mx-auto text-center">
-          <div className="mb-8 flex justify-center">
-            <div className="w-32 h-32 bg-purple-600/20 rounded-full flex items-center justify-center border-2 border-purple-500">
-              <span className="text-5xl font-bold text-purple-400">Z</span>
+      <section id="inicio" className="pt-32 pb-20 px-4 gradient-radial min-h-screen flex items-center">
+        <div className="container mx-auto grid md:grid-cols-2 gap-12 items-center">
+          <div className="text-center md:text-left space-y-4">
+            <h1 className="text-5xl md:text-7xl font-bold mb-2 tracking-tight">
+              ZAZASQUATCH
+            </h1>
+            <p className="text-2xl md:text-3xl text-purple-300">
+              Brownies y galletas con potencia monstruosa
+            </p>
+            <p className="text-lg md:text-xl text-gray-300">
+              Brownies y galletas infusionados con THC-P y THC-O, pensados para usuarios responsables que buscan experiencias intensas.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start items-center">
+              <Button onClick={() => scrollToSection("productos")} size="lg" className="bg-purple-600 hover:bg-purple-700 text-lg px-8">
+                Ver productos
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="border-purple-500 text-purple-300 hover:bg-purple-900/30 text-lg px-8"
+              >
+                <a
+                  href="https://wa.me/5210000000000?text=Hola%20Zazasquatch%2C%20quiero%20hacer%20un%20pedido"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Comprar por WhatsApp
+                </a>
+              </Button>
+            </div>
+            <p className="text-sm text-gray-400">
+              Consumo exclusivo para adultos. Disfruta de forma responsable.
+            </p>
+          </div>
+          <div className="relative w-full max-w-xl h-[420px] mx-auto">
+            <div className="absolute inset-0 rounded-[32px] bg-purple-700/20 blur-3xl" />
+            <div className="relative w-full h-full rounded-[32px] overflow-hidden border border-purple-700/40 shadow-2xl shadow-purple-900/50">
+              <Image
+                src={heroImage}
+                alt="Brownie y galletas Zazasquatch"
+                fill
+                className="object-cover"
+                priority
+                placeholder="blur"
+              />
             </div>
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight">
-            ZAZASQUATCH
-          </h1>
-          <p className="text-2xl md:text-3xl mb-4 text-purple-300">
-            Brownies y galletas con potencia monstruosa
-          </p>
-          <p className="text-lg md:text-xl mb-8 max-w-3xl mx-auto text-gray-300">
-            Brownies y galletas infusionados con THC-P y THC-O, pensados para usuarios responsables que buscan experiencias intensas.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-            <Button onClick={() => scrollToSection("productos")} size="lg" className="bg-purple-600 hover:bg-purple-700 text-lg px-8">
-              Ver productos
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-purple-500 text-purple-300 hover:bg-purple-900/30 text-lg px-8"
-            >
-              <a
-                href="https://wa.me/5210000000000?text=Hola%20Zazasquatch%2C%20quiero%20hacer%20un%20pedido"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Comprar por WhatsApp
-              </a>
-            </Button>
-          </div>
-          <p className="text-sm text-gray-400">
-            Consumo exclusivo para adultos. Disfruta de forma responsable.
-          </p>
         </div>
       </section>
 
@@ -173,6 +196,15 @@ export default function Home() {
             {products.map((product) => (
               <Card key={product.id} className="bg-[#1a0b2e] border-purple-800/40 hover:border-purple-600/60 transition-all hover:shadow-lg hover:shadow-purple-900/50 hover:scale-105">
                 <CardHeader>
+                  <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden border border-purple-800/60 bg-black/20">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                      placeholder="blur"
+                    />
+                  </div>
                   <div className="flex justify-between items-start mb-2">
                     <CardTitle className="text-xl text-white">{product.name}</CardTitle>
                     <span className="text-2xl font-bold text-purple-400">${product.price}</span>
