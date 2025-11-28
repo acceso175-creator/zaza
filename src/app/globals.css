@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 264 100% 2%;
+    --foreground: 0 0% 100%;
+    --card: 264 60% 8%;
+    --card-foreground: 0 0% 100%;
+    --popover: 264 60% 8%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 264 48% 20%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 264 48% 15%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 258 90% 66%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 264 40% 20%;
+    --input: 264 40% 20%;
+    --ring: 258 90% 66%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 264 100% 2%;
+    --foreground: 0 0% 100%;
+    --card: 264 60% 8%;
+    --card-foreground: 0 0% 100%;
+    --popover: 264 60% 8%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 264 48% 20%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 264 48% 15%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 258 90% 66%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 264 40% 20%;
+    --input: 264 40% 20%;
+    --ring: 258 90% 66%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .gradient-bg {
+    background: linear-gradient(135deg, #050011 0%, #4C1D95 50%, #050011 100%);
+  }
+
+  .gradient-radial {
+    background: radial-gradient(ellipse at center, #4C1D95 0%, #050011 70%);
+  }
+}
