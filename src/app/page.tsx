@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { productCatalog, type Product } from "@/lib/products";
 
 import brownieChocolateImage from "../../images/Brownie de chocolate.jpg";
 import brownieSuperChocolateImage from "../../images/Brownie de súper chocolate con trozos de chocolate Hersheys.jpg";
@@ -12,53 +13,18 @@ import galletaChispasCajetaImage from "../../images/Galleta con chispas y cajeta
 import galletaChocoMentaImage from "../../images/Galleta chocomenta.jpg";
 import heroImage from "../../images/hero.jpg";
 
-const products = [
-  {
-    id: 1,
-    name: "Brownie de chocolate",
-    price: 250,
-    type: "THC-P",
-    description: "Brownie clásico, súper chocolatoso, con textura húmeda por dentro y ligera costra por fuera. Perfecto para antojo de algo intenso pero sencillo.",
-    stripeUrl: "https://buy.stripe.com/00weVd7uO5YxbGX6MIdUY07",
-    image: brownieChocolateImage,
-  },
-  {
-    id: 2,
-    name: "Brownie de súper chocolate con trozos de chocolate Hershey's",
-    price: 350,
-    type: "THC-O",
-    description: "Brownie extra cargado de chocolate, con trozos de Hershey's que se derriten al morder. Ideal para los que 'nunca es suficiente chocolate'.",
-    stripeUrl: "https://buy.stripe.com/6oU14n5mG3QpbGX1sodUY06",
-    image: brownieSuperChocolateImage,
-  },
-  {
-    id: 3,
-    name: "Galleta con chispas de chocolate",
-    price: 250,
-    type: "THC-P",
-    description: "Galleta suave por dentro y ligeramente crujiente por fuera, llena de chispas de chocolate en cada bocado. Un clásico que nunca falla.",
-    stripeUrl: "https://buy.stripe.com/3cIfZheXgdqZ12j0okdUY05",
-    image: galletaChispasChocolateImage,
-  },
-  {
-    id: 4,
-    name: "Galleta choco-menta",
-    price: 250,
-    type: "THC-P",
-    description: "Galleta de chocolate con un toque fresco de menta, perfecta para quienes aman la combinación intensa y refrescante.",
-    stripeUrl: "https://buy.stripe.com/dRm14ng1k1Ih26nc72dUY04",
-    image: galletaChocoMentaImage,
-  },
-  {
-    id: 5,
-    name: "Galleta con chispas y cajeta",
-    price: 250,
-    type: "THC-O",
-    description: "Galleta con chispas de chocolate y centros de cajeta suave que se derrite. Dulce, cremosa y súper antojable.",
-    stripeUrl: "https://buy.stripe.com/aFa9AT02mdqZ6mD8UQdUY03",
-    image: galletaChispasCajetaImage,
-  },
-];
+type CartItem = { productId: string; quantity: number };
+
+const productImages: Record<string, typeof brownieChocolateImage> = {
+  "brownie-chocolate": brownieChocolateImage,
+  "brownie-super-chocolate": brownieSuperChocolateImage,
+  "galleta-chispas-chocolate": galletaChispasChocolateImage,
+  "galleta-choco-menta": galletaChocoMentaImage,
+  "galleta-chispas-cajeta": galletaChispasCajetaImage,
+};
+
+const formatCurrency = (value: number) =>
+  value.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 2 });
 
 const faqs = [
   {
@@ -89,6 +55,93 @@ const faqs = [
 
 export default function Home() {
   const [showLegalModal, setShowLegalModal] = useState(false);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const checkoutEndpoint = "/.netlify/functions/create-checkout-session";
+
+  const products = useMemo(
+    () =>
+      productCatalog
+        .map((product) => ({
+          ...product,
+          image: productImages[product.id],
+        }))
+        .filter((product): product is Product & { image: (typeof brownieChocolateImage) } => Boolean(product.image)),
+    [],
+  );
+
+  const cartWithDetails = useMemo(
+    () =>
+      cartItems
+        .map((item) => {
+          const product = products.find((p) => p.id === item.productId);
+          if (!product) return null;
+          return { ...item, product, lineTotal: product.price * item.quantity };
+        })
+        .filter(Boolean) as Array<{ product: Product & { image: (typeof brownieChocolateImage) }; quantity: number; productId: string; lineTotal: number }>,
+    [cartItems, products],
+  );
+
+  const subtotal = useMemo(
+    () => cartWithDetails.reduce((total, item) => total + item.lineTotal, 0),
+    [cartWithDetails],
+  );
+
+  const addToCart = (productId: string) => {
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.productId === productId);
+      if (existing) {
+        return prev.map((item) =>
+          item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item,
+        );
+      }
+      return [...prev, { productId, quantity: 1 }];
+    });
+  };
+
+  const updateQuantity = (productId: string, quantity: number) => {
+    setCartItems((prev) => {
+      if (quantity <= 0) {
+        return prev.filter((item) => item.productId !== productId);
+      }
+      return prev.map((item) =>
+        item.productId === productId ? { ...item, quantity } : item,
+      );
+    });
+  };
+
+  const checkout = async () => {
+    setCheckingOut(true);
+    setCheckoutError(null);
+    try {
+      const response = await fetch(checkoutEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ items: cartItems }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorPayload?.error || "No pudimos iniciar el pago. Intenta de nuevo.");
+      }
+
+      const data = (await response.json()) as { url?: string; error?: string };
+      if (!data.url) {
+        throw new Error(data.error || "No pudimos crear la sesión de pago.");
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      console.error(error);
+      setCheckoutError(error instanceof Error ? error.message : "Error desconocido");
+    } finally {
+      setCheckingOut(false);
+    }
+  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -199,43 +252,131 @@ export default function Home() {
             Elige entre nuestra selección de brownies y galletas infusionados, cada uno con su propia intensidad y sabor único.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.map((product) => (
-              <Card key={product.id} className="bg-[#1a0b2e] border-purple-800/40 hover:border-purple-600/60 transition-all hover:shadow-lg hover:shadow-purple-900/50 hover:scale-105">
-                <CardHeader>
-                  <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden border border-purple-800/60 bg-black/20">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                      placeholder="blur"
-                    />
-                  </div>
-                  <div className="flex justify-between items-start mb-2">
-                    <CardTitle className="text-xl text-white">{product.name}</CardTitle>
-                    <span className="text-2xl font-bold text-purple-400">${product.price}</span>
-                  </div>
-                  <CardDescription>
-                    <span className="inline-block px-3 py-1 bg-purple-600/30 text-purple-300 rounded-full text-sm font-semibold border border-purple-500/50">
-                      Infusionado con {product.type}
-                    </span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 text-sm leading-relaxed">{product.description}</p>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    asChild
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                  >
-                    <a href={product.stripeUrl} target="_blank" rel="noopener noreferrer">
-                      Comprar ahora
-                    </a>
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+            {products.map((product) => {
+              const quantityInCart =
+                cartItems.find((item) => item.productId === product.id)?.quantity ?? 0;
+
+              return (
+                <Card
+                  key={product.id}
+                  className="bg-[#1a0b2e] border-purple-800/40 hover:border-purple-600/60 transition-all hover:shadow-lg hover:shadow-purple-900/50 hover:scale-105"
+                >
+                  <CardHeader>
+                    <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden border border-purple-800/60 bg-black/20">
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                        placeholder="blur"
+                      />
+                    </div>
+                    <div className="flex justify-between items-start mb-2">
+                      <CardTitle className="text-xl text-white">{product.name}</CardTitle>
+                      <span className="text-2xl font-bold text-purple-400">{formatCurrency(product.price)}</span>
+                    </div>
+                    <CardDescription>
+                      <span className="inline-block px-3 py-1 bg-purple-600/30 text-purple-300 rounded-full text-sm font-semibold border border-purple-500/50">
+                        Infusionado con {product.type}
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-300 text-sm leading-relaxed">{product.description}</p>
+                  </CardContent>
+                  <CardFooter className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="border-purple-700/60 text-purple-200 hover:bg-purple-800/40"
+                          onClick={() => updateQuantity(product.id, quantityInCart - 1)}
+                          disabled={quantityInCart === 0}
+                          aria-label="Reducir cantidad"
+                        >
+                          -
+                        </Button>
+                        <span className="text-lg font-semibold">{quantityInCart}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="border-purple-700/60 text-purple-200 hover:bg-purple-800/40"
+                          onClick={() => updateQuantity(product.id, quantityInCart + 1)}
+                          aria-label="Incrementar cantidad"
+                        >
+                          +
+                        </Button>
+                      </div>
+                      <div className="text-sm text-gray-300">
+                        {quantityInCart > 0
+                          ? `Subtotal: ${formatCurrency(product.price * quantityInCart)}`
+                          : "Listo para tu carrito"}
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      onClick={() => addToCart(product.id)}
+                    >
+                      {quantityInCart ? "Agregar uno más" : "Agregar al carrito"}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+          <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-[#1a0b2e] border border-purple-800/40 rounded-lg p-6">
+              <h3 className="text-2xl font-semibold text-white mb-4">Tu carrito</h3>
+              {cartWithDetails.length === 0 ? (
+                <p className="text-gray-300">Agrega productos para iniciar tu compra.</p>
+              ) : (
+                <div className="space-y-4">
+                  {cartWithDetails.map((item) => (
+                    <div
+                      key={item.productId}
+                      className="flex items-center justify-between rounded-md border border-purple-800/40 p-3 bg-[#0f0624]"
+                    >
+                      <div>
+                        <p className="font-semibold text-white">{item.product.name}</p>
+                        <p className="text-sm text-gray-300">
+                          {item.quantity} x {formatCurrency(item.product.price)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-purple-300">{formatCurrency(item.lineTotal)}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-300 hover:text-red-200"
+                          onClick={() => updateQuantity(item.productId, 0)}
+                        >
+                          Quitar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="bg-[#1a0b2e] border border-purple-800/40 rounded-lg p-6 flex flex-col gap-4">
+              <h3 className="text-2xl font-semibold text-white">Resumen y pago</h3>
+              <div className="flex items-center justify-between text-lg text-purple-100">
+                <span>Subtotal</span>
+                <span className="font-bold">{formatCurrency(subtotal)}</span>
+              </div>
+              <p className="text-sm text-gray-300">
+                El costo de envío se calcula y valida en el servidor antes de crear la sesión de pago.
+              </p>
+              {checkoutError && <p className="text-sm text-red-300">{checkoutError}</p>}
+              <Button
+                className="bg-purple-600 hover:bg-purple-700"
+                disabled={cartWithDetails.length === 0 || checkingOut}
+                onClick={checkout}
+              >
+                {checkingOut ? "Creando sesión..." : "Pagar"}
+              </Button>
+            </div>
           </div>
         </div>
       </section>
