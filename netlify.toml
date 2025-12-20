@@ -1,12 +1,10 @@
 [images]
-  remote_images = ["https://source.unsplash.com/.*", "https://images.unsplash.com/.*", "https://ext.same-assets.com/.*", "https://ugc.same-assets.com/.*"]
+  remote_images = ["https://source.unsplash.com/*", "https://images.unsplash.com/*", "https://ext.same-assets.com/*", "https://ugc.same-assets.com/*"]
 
 [build]
   command = "bun install && bun run build"
   # Next.js builds output to .next when using the Netlify plugin
   publish = ".next"
-[functions]
-  directory = "netlify/functions"
 
 [functions]
   directory = "netlify/functions"
@@ -14,7 +12,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Redirect legacy /functions/* calls to the Netlify functions mount
 [[redirects]]
   from = "/functions/*"
   to = "/.netlify/functions/:splat"
