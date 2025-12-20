@@ -13,7 +13,14 @@ import galletaChispasCajetaImage from "../../images/Galleta con chispas y cajeta
 import galletaChocoMentaImage from "../../images/Galleta chocomenta.jpg";
 import heroImage from "../../images/hero.jpg";
 
-type CartItem = { productId: string; quantity: number };
+type CartItem = {
+  productId: string;
+  id: string;
+  quantity: number;
+  sku?: string;
+  slug?: string;
+  qty?: number;
+};
 
 const productImages: Record<string, typeof brownieChocolateImage> = {
   "brownie-chocolate": brownieChocolateImage,
@@ -58,6 +65,9 @@ export default function Home() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutErrorDetails, setCheckoutErrorDetails] = useState<
+    { receivedIds?: string[]; validIds?: string[] } | null
+  >(null);
 
   const checkoutEndpoint = "/.netlify/functions/create-checkout-session";
 
@@ -97,7 +107,7 @@ export default function Home() {
           item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item,
         );
       }
-      return [...prev, { productId, quantity: 1 }];
+      return [...prev, { productId, id: productId, quantity: 1 }];
     });
   };
 
@@ -115,26 +125,41 @@ export default function Home() {
   const checkout = async () => {
     setCheckingOut(true);
     setCheckoutError(null);
+    setCheckoutErrorDetails(null);
     try {
+      const items = cartItems
+        .map((item) => {
+          const quantity = Number(item.quantity ?? item.qty ?? 1);
+          const id = item.id || item.sku || item.slug || item.productId;
+          return { id, quantity };
+        })
+        .filter((item) => item.id && Number.isFinite(item.quantity) && item.quantity > 0);
+
       const response = await fetch(checkoutEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ items: cartItems }),
+        body: JSON.stringify({ items }),
       });
 
+      const payload = (await response.json().catch(() => null)) as {
+        url?: string;
+        error?: string;
+        details?: { receivedIds?: string[]; validIds?: string[] };
+      } | null;
+
       if (!response.ok) {
-        const errorPayload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorPayload?.error || "No pudimos iniciar el pago. Intenta de nuevo.");
+        setCheckoutError(payload?.error || "No pudimos iniciar el pago. Intenta de nuevo.");
+        setCheckoutErrorDetails(payload?.details ?? null);
+        return;
       }
 
-      const data = (await response.json()) as { url?: string; error?: string };
-      if (!data.url) {
-        throw new Error(data.error || "No pudimos crear la sesión de pago.");
+      if (!payload?.url) {
+        throw new Error(payload?.error || "No pudimos crear la sesión de pago.");
       }
 
-      window.location.href = data.url;
+      window.location.href = payload.url;
     } catch (error) {
       console.error(error);
       setCheckoutError(error instanceof Error ? error.message : "Error desconocido");
@@ -376,6 +401,12 @@ export default function Home() {
               >
                 {checkingOut ? "Creando sesión..." : "Pagar"}
               </Button>
+              {checkoutErrorDetails && (
+                <p className="text-xs text-purple-200/80">
+                  IDs enviados: {checkoutErrorDetails.receivedIds?.join(", ") || "—"}. IDs válidos:
+                  {checkoutErrorDetails.validIds?.join(", ") || "—"}.
+                </p>
+              )}
             </div>
           </div>
         </div>

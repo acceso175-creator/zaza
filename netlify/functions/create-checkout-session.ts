@@ -1,7 +1,19 @@
 import type { Handler } from "@netlify/functions";
 import Stripe from "stripe";
 
-import { getProductById, productCatalog } from "../../src/lib/products";
+import { productCatalog } from "../../src/lib/products";
+
+const PRODUCT_CATALOG = productCatalog.reduce(
+  (catalog, product) => ({
+    ...catalog,
+    [product.id]: {
+      name: product.name,
+      unit_amount_mxn: product.price,
+      description: product.description,
+    },
+  }),
+  {} as Record<string, { name: string; unit_amount_mxn: number; description?: string }>,
+);
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const siteUrl = process.env.SITE_URL;
@@ -40,28 +52,39 @@ const handler: Handler = async (event) => {
 
   try {
     const payload = JSON.parse(event.body as string);
-    const items: { id: string; quantity: number }[] = Array.isArray(payload?.items) ? payload.items : [];
+    const items: { id?: string; quantity?: number }[] = Array.isArray(payload?.items) ? payload.items : [];
 
     const validatedItems = items
       .map((item) => {
-        const quantity = Number(item.quantity);
-        const product = getProductById(item.id);
+        const quantity = Number(item?.quantity);
+        const product = item?.id ? PRODUCT_CATALOG[item.id] : undefined;
         if (!product || Number.isNaN(quantity) || quantity <= 0) return null;
-        return { product, quantity };
+        return { product, quantity, id: item.id };
       })
-      .filter(Boolean) as { product: (typeof productCatalog)[number]; quantity: number }[];
+      .filter(Boolean) as { product: (typeof PRODUCT_CATALOG)[string]; quantity: number; id: string }[];
 
     if (validatedItems.length === 0) {
-      return { statusCode: 400, body: JSON.stringify({ error: "No valid items in cart" }) };
+      const receivedIds = Array.from(new Set(items.map((item) => item?.id).filter(Boolean))) as string[];
+      const validIds = Object.keys(PRODUCT_CATALOG);
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: "No valid items in cart",
+          details: { receivedIds, validIds },
+        }),
+      };
     }
 
-    const subtotal = validatedItems.reduce((total, { product, quantity }) => total + product.price * quantity, 0);
+    const subtotal = validatedItems.reduce(
+      (total, { product, quantity }) => total + product.unit_amount_mxn * quantity,
+      0,
+    );
     const shippingRateToUse = subtotal >= freeShippingThreshold ? shippingRateFree : shippingRatePaid;
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = validatedItems.map(({ product, quantity }) => ({
       price_data: {
         currency: "mxn",
-        unit_amount: product.price * 100,
+        unit_amount: product.unit_amount_mxn * 100,
         product_data: {
           name: product.name,
           description: product.description,
