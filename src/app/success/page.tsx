@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 
@@ -38,20 +39,42 @@ type SessionSummary = {
   line_items?: LineItem[] | null;
 };
 
-type SuccessPageProps = {
-  searchParams: {
-    session_id?: string;
-  };
-};
-
 const formatCurrency = (value: number, currency?: string | null) =>
   (value / 100).toLocaleString("es-MX", {
     style: "currency",
     currency: currency ?? "MXN",
   });
 
-export default function SuccessPage({ searchParams }: SuccessPageProps) {
-  const sessionId = searchParams.session_id;
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<SuccessPageFallback />}>
+      <SuccessPageContent />
+    </Suspense>
+  );
+}
+
+function SuccessPageFallback() {
+  return (
+    <div className="min-h-screen bg-[#050011] text-white px-4 py-20">
+      <div className="max-w-3xl mx-auto bg-[#1a0b2e] border border-purple-800/40 rounded-lg p-8 shadow-xl">
+        <h1 className="text-4xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-600">
+          ¡Pago confirmado!
+        </h1>
+        <p className="text-center text-gray-300 mb-8">Cargando información del pago...</p>
+
+        <div className="mt-10 flex justify-center">
+          <Button asChild className="bg-purple-600 hover:bg-purple-700">
+            <Link href="/">Seguir comprando</Link>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SuccessPageContent() {
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("session_id");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<SessionSummary | null>(null);
@@ -80,7 +103,9 @@ export default function SuccessPage({ searchParams }: SuccessPageProps) {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/.netlify/functions/get-session?session_id=${sessionId}`);
+        const response = await fetch(
+          `/.netlify/functions/get-session?session_id=${encodeURIComponent(sessionId)}`
+        );
         if (!response.ok) {
           throw new Error("No pudimos obtener los detalles del pago.");
         }
