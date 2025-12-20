@@ -25,9 +25,18 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+    const session = (await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["line_items", "customer_details", "shipping_cost.shipping_rate", "shipping_details"],
-    });
+    })) as {
+      id?: string;
+      amount_total?: number;
+      currency?: string;
+      status?: string;
+      customer_details?: unknown;
+      shipping_details?: unknown;
+      shipping_cost?: unknown;
+      line_items?: { data: Array<Record<string, unknown>> };
+    };
 
     return {
       statusCode: 200,
@@ -39,13 +48,13 @@ const handler: Handler = async (event) => {
         customer_details: session.customer_details,
         shipping_details: session.shipping_details,
         shipping_cost: session.shipping_cost,
-        line_items: session.line_items?.data.map((item) => ({
-          id: item.id,
-          description: item.description,
-          quantity: item.quantity,
-          amount_subtotal: item.amount_subtotal,
-          amount_total: item.amount_total,
-          currency: item.currency,
+        line_items: session.line_items?.data.map((item: Record<string, unknown>) => ({
+          id: item.id as string,
+          description: item.description as string,
+          quantity: item.quantity as number,
+          amount_subtotal: item.amount_subtotal as number,
+          amount_total: item.amount_total as number,
+          currency: item.currency as string,
         })),
       }),
     };

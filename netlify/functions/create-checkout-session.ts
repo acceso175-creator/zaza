@@ -81,7 +81,7 @@ const handler: Handler = async (event) => {
     );
     const shippingRateToUse = subtotal >= freeShippingThreshold ? shippingRateFree : shippingRatePaid;
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = validatedItems.map(({ product, quantity }) => ({
+    const lineItems = validatedItems.map(({ product, quantity }) => ({
       price_data: {
         currency: "mxn",
         unit_amount: product.unit_amount_mxn * 100,
