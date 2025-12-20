@@ -5,6 +5,8 @@
   command = "bun install && bun run build"
   # Next.js builds output to .next when using the Netlify plugin
   publish = ".next"
+[functions]
+  directory = "netlify/functions"
 
 [functions]
   directory = "netlify/functions"
