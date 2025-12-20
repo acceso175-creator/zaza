@@ -3,9 +3,19 @@
 
 [build]
   command = "bun install && bun run build"
+  # Next.js builds output to .next when using the Netlify plugin
   publish = ".next"
+[functions]
+  directory = "netlify/functions"
+
 [functions]
   directory = "netlify/functions"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Redirect legacy /functions/* calls to the Netlify functions mount
+[[redirects]]
+  from = "/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

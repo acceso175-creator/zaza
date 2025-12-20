@@ -5,7 +5,7 @@
     "": {
       "name": "nextjs-shadcn",
       "dependencies": {
-        "@netlify/functions": "^4.3.0",
+        "@netlify/functions": "^2.0.0",
         "@radix-ui/react-slot": "^1.2.4",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",

@@ -59,6 +59,8 @@ export default function Home() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
+  const checkoutEndpoint = "/.netlify/functions/create-checkout-session";
+
   const products = useMemo(
     () =>
       productCatalog
@@ -114,7 +116,7 @@ export default function Home() {
     setCheckingOut(true);
     setCheckoutError(null);
     try {
-      const response = await fetch("/.netlify/functions/create-checkout-session", {
+      const response = await fetch(checkoutEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -123,7 +125,8 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error("No pudimos iniciar el pago. Intenta de nuevo.");
+        const errorPayload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorPayload?.error || "No pudimos iniciar el pago. Intenta de nuevo.");
       }
 
       const data = (await response.json()) as { url?: string; error?: string };
