@@ -13,7 +13,7 @@ import galletaChispasCajetaImage from "../../images/Galleta con chispas y cajeta
 import galletaChocoMentaImage from "../../images/Galleta chocomenta.jpg";
 import heroImage from "../../images/hero.jpg";
 
-type CartItem = { productId: string; quantity: number };
+const WHATSAPP_NUMBER = "5216144874039";
 
 const productImages: Record<string, typeof brownieChocolateImage> = {
   "brownie-chocolate": brownieChocolateImage,
@@ -55,11 +55,18 @@ const faqs = [
 
 export default function Home() {
   const [showLegalModal, setShowLegalModal] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [checkingOut, setCheckingOut] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const checkoutEndpoint = "/.netlify/functions/create-checkout-session";
+  const buildWhatsAppLink = (productName: string) => {
+    const message = `Hola, quiero comprar ${productName}. ¿Me apoyas con mi pedido?`;
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+  };
+
+  const generalWhatsAppLink = useMemo(
+    () =>
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hola, quiero comprar productos Zazasquatch. ¿Me apoyas con mi pedido?")}`,
+    [],
+  );
 
   const products = useMemo(
     () =>
@@ -71,77 +78,6 @@ export default function Home() {
         .filter((product): product is Product & { image: (typeof brownieChocolateImage) } => Boolean(product.image)),
     [],
   );
-
-  const cartWithDetails = useMemo(
-    () =>
-      cartItems
-        .map((item) => {
-          const product = products.find((p) => p.id === item.productId);
-          if (!product) return null;
-          return { ...item, product, lineTotal: product.price * item.quantity };
-        })
-        .filter(Boolean) as Array<{ product: Product & { image: (typeof brownieChocolateImage) }; quantity: number; productId: string; lineTotal: number }>,
-    [cartItems, products],
-  );
-
-  const subtotal = useMemo(
-    () => cartWithDetails.reduce((total, item) => total + item.lineTotal, 0),
-    [cartWithDetails],
-  );
-
-  const addToCart = (productId: string) => {
-    setCartItems((prev) => {
-      const existing = prev.find((item) => item.productId === productId);
-      if (existing) {
-        return prev.map((item) =>
-          item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item,
-        );
-      }
-      return [...prev, { productId, quantity: 1 }];
-    });
-  };
-
-  const updateQuantity = (productId: string, quantity: number) => {
-    setCartItems((prev) => {
-      if (quantity <= 0) {
-        return prev.filter((item) => item.productId !== productId);
-      }
-      return prev.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item,
-      );
-    });
-  };
-
-  const checkout = async () => {
-    setCheckingOut(true);
-    setCheckoutError(null);
-    try {
-      const response = await fetch(checkoutEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ items: cartItems }),
-      });
-
-      if (!response.ok) {
-        const errorPayload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorPayload?.error || "No pudimos iniciar el pago. Intenta de nuevo.");
-      }
-
-      const data = (await response.json()) as { url?: string; error?: string };
-      if (!data.url) {
-        throw new Error(data.error || "No pudimos crear la sesión de pago.");
-      }
-
-      window.location.href = data.url;
-    } catch (error) {
-      console.error(error);
-      setCheckoutError(error instanceof Error ? error.message : "Error desconocido");
-    } finally {
-      setCheckingOut(false);
-    }
-  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -229,7 +165,7 @@ export default function Home() {
                 className="border-purple-300/60 text-purple-100 hover:bg-purple-900/30 text-lg px-8 backdrop-blur"
               >
                 <a
-                  href="https://wa.me/5210000000000?text=Hola%20Zazasquatch%2C%20quiero%20hacer%20un%20pedido"
+                  href={generalWhatsAppLink}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -253,8 +189,7 @@ export default function Home() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {products.map((product) => {
-              const quantityInCart =
-                cartItems.find((item) => item.productId === product.id)?.quantity ?? 0;
+              const whatsappLink = buildWhatsAppLink(product.name);
 
               return (
                 <Card
@@ -284,99 +219,34 @@ export default function Home() {
                   <CardContent>
                     <p className="text-gray-300 text-sm leading-relaxed">{product.description}</p>
                   </CardContent>
-                  <CardFooter className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="border-purple-700/60 text-purple-200 hover:bg-purple-800/40"
-                          onClick={() => updateQuantity(product.id, quantityInCart - 1)}
-                          disabled={quantityInCart === 0}
-                          aria-label="Reducir cantidad"
+                  <CardFooter className="flex flex-col gap-4">
+                    <div className="flex flex-col w-full gap-2">
+                      <Button
+                        asChild
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                      >
+                        <a
+                          href={product.stripePaymentLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
-                          -
-                        </Button>
-                        <span className="text-lg font-semibold">{quantityInCart}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="border-purple-700/60 text-purple-200 hover:bg-purple-800/40"
-                          onClick={() => updateQuantity(product.id, quantityInCart + 1)}
-                          aria-label="Incrementar cantidad"
-                        >
-                          +
-                        </Button>
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        {quantityInCart > 0
-                          ? `Subtotal: ${formatCurrency(product.price * quantityInCart)}`
-                          : "Listo para tu carrito"}
-                      </div>
+                          Comprar ahora
+                        </a>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full border-purple-700/60 text-purple-100 hover:bg-purple-800/40"
+                      >
+                        <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                          Comprar por WhatsApp
+                        </a>
+                      </Button>
                     </div>
-                    <Button
-                      className="w-full bg-purple-600 hover:bg-purple-700"
-                      onClick={() => addToCart(product.id)}
-                    >
-                      {quantityInCart ? "Agregar uno más" : "Agregar al carrito"}
-                    </Button>
                   </CardFooter>
                 </Card>
               );
             })}
-          </div>
-          <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#1a0b2e] border border-purple-800/40 rounded-lg p-6">
-              <h3 className="text-2xl font-semibold text-white mb-4">Tu carrito</h3>
-              {cartWithDetails.length === 0 ? (
-                <p className="text-gray-300">Agrega productos para iniciar tu compra.</p>
-              ) : (
-                <div className="space-y-4">
-                  {cartWithDetails.map((item) => (
-                    <div
-                      key={item.productId}
-                      className="flex items-center justify-between rounded-md border border-purple-800/40 p-3 bg-[#0f0624]"
-                    >
-                      <div>
-                        <p className="font-semibold text-white">{item.product.name}</p>
-                        <p className="text-sm text-gray-300">
-                          {item.quantity} x {formatCurrency(item.product.price)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-purple-300">{formatCurrency(item.lineTotal)}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-300 hover:text-red-200"
-                          onClick={() => updateQuantity(item.productId, 0)}
-                        >
-                          Quitar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="bg-[#1a0b2e] border border-purple-800/40 rounded-lg p-6 flex flex-col gap-4">
-              <h3 className="text-2xl font-semibold text-white">Resumen y pago</h3>
-              <div className="flex items-center justify-between text-lg text-purple-100">
-                <span>Subtotal</span>
-                <span className="font-bold">{formatCurrency(subtotal)}</span>
-              </div>
-              <p className="text-sm text-gray-300">
-                El costo de envío se calcula y valida en el servidor antes de crear la sesión de pago.
-              </p>
-              {checkoutError && <p className="text-sm text-red-300">{checkoutError}</p>}
-              <Button
-                className="bg-purple-600 hover:bg-purple-700"
-                disabled={cartWithDetails.length === 0 || checkingOut}
-                onClick={checkout}
-              >
-                {checkingOut ? "Creando sesión..." : "Pagar"}
-              </Button>
-            </div>
           </div>
         </div>
       </section>
@@ -463,7 +333,7 @@ export default function Home() {
               className="bg-green-600 hover:bg-green-700 text-lg px-8"
             >
               <a
-                href="https://wa.me/5210000000000?text=Hola%20Zazasquatch%2C%20quiero%20hacer%20un%20pedido"
+                href={generalWhatsAppLink}
                 target="_blank"
                 rel="noopener noreferrer"
               >
