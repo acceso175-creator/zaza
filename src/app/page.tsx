@@ -13,8 +13,6 @@ import galletaChispasCajetaImage from "../../images/Galleta con chispas y cajeta
 import galletaChocoMentaImage from "../../images/Galleta chocomenta.jpg";
 import heroImage from "../../images/hero.jpg";
 
-type CartItem = { productId: string; quantity: number };
-
 const WHATSAPP_NUMBER = "5216144874039";
 
 const productImages: Record<string, typeof brownieChocolateImage> = {
@@ -57,7 +55,6 @@ const faqs = [
 
 export default function Home() {
   const [showLegalModal, setShowLegalModal] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   const buildWhatsAppLink = (productName: string) => {
     const message = `Hola, quiero comprar ${productName}. ¿Me apoyas con mi pedido?`;
@@ -81,46 +78,6 @@ export default function Home() {
         .filter((product): product is Product & { image: (typeof brownieChocolateImage) } => Boolean(product.image)),
     [],
   );
-
-  const cartWithDetails = useMemo(
-    () =>
-      cartItems
-        .map((item) => {
-          const product = products.find((p) => p.id === item.productId);
-          if (!product) return null;
-          return { ...item, product, lineTotal: product.price * item.quantity };
-        })
-        .filter(Boolean) as Array<{ product: Product & { image: (typeof brownieChocolateImage) }; quantity: number; productId: string; lineTotal: number }>,
-    [cartItems, products],
-  );
-
-  const subtotal = useMemo(
-    () => cartWithDetails.reduce((total, item) => total + item.lineTotal, 0),
-    [cartWithDetails],
-  );
-
-  const addToCart = (productId: string) => {
-    setCartItems((prev) => {
-      const existing = prev.find((item) => item.productId === productId);
-      if (existing) {
-        return prev.map((item) =>
-          item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item,
-        );
-      }
-      return [...prev, { productId, quantity: 1 }];
-    });
-  };
-
-  const updateQuantity = (productId: string, quantity: number) => {
-    setCartItems((prev) => {
-      if (quantity <= 0) {
-        return prev.filter((item) => item.productId !== productId);
-      }
-      return prev.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item,
-      );
-    });
-  };
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -232,8 +189,6 @@ export default function Home() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {products.map((product) => {
-              const quantityInCart =
-                cartItems.find((item) => item.productId === product.id)?.quantity ?? 0;
               const whatsappLink = buildWhatsAppLink(product.name);
 
               return (
@@ -265,35 +220,6 @@ export default function Home() {
                     <p className="text-gray-300 text-sm leading-relaxed">{product.description}</p>
                   </CardContent>
                   <CardFooter className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="border-purple-700/60 text-purple-200 hover:bg-purple-800/40"
-                          onClick={() => updateQuantity(product.id, quantityInCart - 1)}
-                          disabled={quantityInCart === 0}
-                          aria-label="Reducir cantidad"
-                        >
-                          -
-                        </Button>
-                        <span className="text-lg font-semibold">{quantityInCart}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="border-purple-700/60 text-purple-200 hover:bg-purple-800/40"
-                          onClick={() => updateQuantity(product.id, quantityInCart + 1)}
-                          aria-label="Incrementar cantidad"
-                        >
-                          +
-                        </Button>
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        {quantityInCart > 0
-                          ? `Subtotal: ${formatCurrency(product.price * quantityInCart)}`
-                          : "Listo para tu carrito"}
-                      </div>
-                    </div>
                     <div className="flex flex-col w-full gap-2">
                       <Button
                         asChild
@@ -317,75 +243,10 @@ export default function Home() {
                         </a>
                       </Button>
                     </div>
-                    <Button
-                      className="w-full bg-purple-600 hover:bg-purple-700"
-                      onClick={() => addToCart(product.id)}
-                    >
-                      {quantityInCart ? "Agregar uno más" : "Agregar al carrito"}
-                    </Button>
                   </CardFooter>
                 </Card>
               );
             })}
-          </div>
-          <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#1a0b2e] border border-purple-800/40 rounded-lg p-6">
-              <h3 className="text-2xl font-semibold text-white mb-4">Tu carrito</h3>
-              {cartWithDetails.length === 0 ? (
-                <p className="text-gray-300">Agrega productos para iniciar tu compra.</p>
-              ) : (
-                <div className="space-y-4">
-                  {cartWithDetails.map((item) => (
-                    <div
-                      key={item.productId}
-                      className="flex items-center justify-between rounded-md border border-purple-800/40 p-3 bg-[#0f0624]"
-                    >
-                      <div>
-                        <p className="font-semibold text-white">{item.product.name}</p>
-                        <p className="text-sm text-gray-300">
-                          {item.quantity} x {formatCurrency(item.product.price)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-purple-300">{formatCurrency(item.lineTotal)}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-300 hover:text-red-200"
-                          onClick={() => updateQuantity(item.productId, 0)}
-                        >
-                          Quitar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="bg-[#1a0b2e] border border-purple-800/40 rounded-lg p-6 flex flex-col gap-4">
-              <h3 className="text-2xl font-semibold text-white">Resumen y pago</h3>
-              <div className="flex items-center justify-between text-lg text-purple-100">
-                <span>Subtotal</span>
-                <span className="font-bold">{formatCurrency(subtotal)}</span>
-              </div>
-              <p className="text-sm text-gray-300 leading-relaxed">
-                Completa tu compra dando clic en "Comprar ahora" dentro de cada producto o contáctanos por WhatsApp si necesitas apoyo con tu pedido.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={() => scrollToSection("productos")}>
-                  Ir a productos
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full border-purple-700/60 text-purple-100 hover:bg-purple-800/40"
-                >
-                  <a href={generalWhatsAppLink} target="_blank" rel="noopener noreferrer">
-                    Chatear por WhatsApp
-                  </a>
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </section>
