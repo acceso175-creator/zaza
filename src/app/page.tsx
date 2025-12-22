@@ -15,6 +15,8 @@ import heroImage from "../../images/hero.jpg";
 
 type CartItem = { productId: string; quantity: number };
 
+const WHATSAPP_NUMBER = "5216144874039";
+
 const productImages: Record<string, typeof brownieChocolateImage> = {
   "brownie-chocolate": brownieChocolateImage,
   "brownie-super-chocolate": brownieSuperChocolateImage,
@@ -56,10 +58,18 @@ const faqs = [
 export default function Home() {
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [checkingOut, setCheckingOut] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const checkoutEndpoint = "/.netlify/functions/create-checkout-session";
+  const buildWhatsAppLink = (productName: string) => {
+    const message = `Hola, quiero comprar ${productName}. ¿Me apoyas con mi pedido?`;
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
+  };
+
+  const generalWhatsAppLink = useMemo(
+    () =>
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hola, quiero comprar productos Zazasquatch. ¿Me apoyas con mi pedido?")}`,
+    [],
+  );
 
   const products = useMemo(
     () =>
@@ -110,37 +120,6 @@ export default function Home() {
         item.productId === productId ? { ...item, quantity } : item,
       );
     });
-  };
-
-  const checkout = async () => {
-    setCheckingOut(true);
-    setCheckoutError(null);
-    try {
-      const response = await fetch(checkoutEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ items: cartItems }),
-      });
-
-      if (!response.ok) {
-        const errorPayload = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorPayload?.error || "No pudimos iniciar el pago. Intenta de nuevo.");
-      }
-
-      const data = (await response.json()) as { url?: string; error?: string };
-      if (!data.url) {
-        throw new Error(data.error || "No pudimos crear la sesión de pago.");
-      }
-
-      window.location.href = data.url;
-    } catch (error) {
-      console.error(error);
-      setCheckoutError(error instanceof Error ? error.message : "Error desconocido");
-    } finally {
-      setCheckingOut(false);
-    }
   };
 
   const scrollToSection = (id: string) => {
@@ -229,7 +208,7 @@ export default function Home() {
                 className="border-purple-300/60 text-purple-100 hover:bg-purple-900/30 text-lg px-8 backdrop-blur"
               >
                 <a
-                  href="https://wa.me/5210000000000?text=Hola%20Zazasquatch%2C%20quiero%20hacer%20un%20pedido"
+                  href={generalWhatsAppLink}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -255,6 +234,7 @@ export default function Home() {
             {products.map((product) => {
               const quantityInCart =
                 cartItems.find((item) => item.productId === product.id)?.quantity ?? 0;
+              const whatsappLink = buildWhatsAppLink(product.name);
 
               return (
                 <Card
@@ -284,7 +264,7 @@ export default function Home() {
                   <CardContent>
                     <p className="text-gray-300 text-sm leading-relaxed">{product.description}</p>
                   </CardContent>
-                  <CardFooter className="flex flex-col gap-3">
+                  <CardFooter className="flex flex-col gap-4">
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2">
                         <Button
@@ -313,6 +293,29 @@ export default function Home() {
                           ? `Subtotal: ${formatCurrency(product.price * quantityInCart)}`
                           : "Listo para tu carrito"}
                       </div>
+                    </div>
+                    <div className="flex flex-col w-full gap-2">
+                      <Button
+                        asChild
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                      >
+                        <a
+                          href={product.stripePaymentLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Comprar ahora
+                        </a>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full border-purple-700/60 text-purple-100 hover:bg-purple-800/40"
+                      >
+                        <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                          Comprar por WhatsApp
+                        </a>
+                      </Button>
                     </div>
                     <Button
                       className="w-full bg-purple-600 hover:bg-purple-700"
@@ -365,17 +368,23 @@ export default function Home() {
                 <span>Subtotal</span>
                 <span className="font-bold">{formatCurrency(subtotal)}</span>
               </div>
-              <p className="text-sm text-gray-300">
-                El costo de envío se calcula y valida en el servidor antes de crear la sesión de pago.
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Completa tu compra dando clic en "Comprar ahora" dentro de cada producto o contáctanos por WhatsApp si necesitas apoyo con tu pedido.
               </p>
-              {checkoutError && <p className="text-sm text-red-300">{checkoutError}</p>}
-              <Button
-                className="bg-purple-600 hover:bg-purple-700"
-                disabled={cartWithDetails.length === 0 || checkingOut}
-                onClick={checkout}
-              >
-                {checkingOut ? "Creando sesión..." : "Pagar"}
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={() => scrollToSection("productos")}>
+                  Ir a productos
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full border-purple-700/60 text-purple-100 hover:bg-purple-800/40"
+                >
+                  <a href={generalWhatsAppLink} target="_blank" rel="noopener noreferrer">
+                    Chatear por WhatsApp
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -463,7 +472,7 @@ export default function Home() {
               className="bg-green-600 hover:bg-green-700 text-lg px-8"
             >
               <a
-                href="https://wa.me/5210000000000?text=Hola%20Zazasquatch%2C%20quiero%20hacer%20un%20pedido"
+                href={generalWhatsAppLink}
                 target="_blank"
                 rel="noopener noreferrer"
               >
